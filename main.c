@@ -17,20 +17,19 @@
 #include <avr/sleep.h>
 /* Scheduler include files. */
 #include "FreeRTOS.h"
-#include "task.h"
+
 /* Atmel drivers */
 #include "clksys_driver.h"
 #include "pmic_driver.h"
 /* File headers. */
 
-#include "led.h"
-#include "spispy_task.h"
-#include "usart_task.h"
+#include "usart_driver_RTOS.h"
+
 
 /* BADISR_vect is called when interrupt has occurred, but there is no ISR handler for it defined */
 ISR (BADISR_vect){
 	//stop execution and report error
-	while(true) LED_set(ORANGE);
+	//while(true) LED_set(ORANGE);
 }
 
 int main( void )
@@ -50,20 +49,20 @@ int main( void )
 
 
 	USART_buffer_struct_t FTDI_USART;
-	FTDI_USART = USART_InterruptDriver_Initialize(&USARTC0, BAUD9600, 64);
+//	FTDI_USART = USART_InterruptDriver_Initialize(&USARTC0, BAUD9600, 64);
 	/* Report itself. */
-	USART_Buffer_PutString(&FTDI_USART, "XMEGA ready",DONT_BLOCK);
+//	USART_Buffer_PutString(&FTDI_USART, "XMEGA ready",DONT_BLOCK);
 	/* Start USART task */
-	xTaskCreate(vUSARTTask, ( signed char * ) "USARTTSK", 1000,&FTDI_USART, configNORMAL_PRIORITY, NULL );
+//	xTaskCreate(vUSARTTask, ( signed char * ) "USARTTSK", 1000,&FTDI_USART, configNORMAL_PRIORITY, NULL );
 	/* Start LED task for testing purposes */
 	xQueueHandle debugLed = startDebugLedTask(configLOW_PRIORITY);
-	xTaskCreate(BlinkingLedTask, ( signed char * ) "BLINK", configMINIMAL_STACK_SIZE, debugLed, configLOW_PRIORITY, NULL );
+//	xTaskCreate(BlinkingLedTask, ( signed char * ) "BLINK", configMINIMAL_STACK_SIZE, debugLed, configLOW_PRIORITY, NULL );
 	/* Start SPISPY task */
 	//vStartSPISPYTask(configNORMAL_PRIORITY);
 
-	LED_queue_put(debugLed,BLUE,700);
-	LED_queue_put(debugLed,SKY,700);
-	LED_queue_put(debugLed,WHITE,700);
+//	LED_queue_put(debugLed,BLUE,700);
+//	LED_queue_put(debugLed,SKY,700);
+//	LED_queue_put(debugLed,WHITE,700);
 	/* Enable PMIC interrupt level low. */
 
 
@@ -79,8 +78,8 @@ int main( void )
 	vTaskStartScheduler();
 
 	/* stop execution and report error */
-	LED_set(PINK);
-	while(true) LED_set(PINK);
+//	LED_set(PINK);
+	//while(true) LED_set(PINK);
 	return 0;
 }
 /* Prototype */
@@ -105,7 +104,7 @@ void vApplicationStackOverflowHook( xTaskHandle *pxTask, signed portCHAR *pcTask
 void vApplicationStackOverflowHook( xTaskHandle *pxTask, signed portCHAR *pcTaskName )
 {
 	/* stop execution and report error */
-	while(true) LED_set(RED);
+	//while(true) LED_set(RED);
 }
 void vApplicationTickHook( void );
 /* This function is called during the tick interrupt. configUSE_TICK_HOOK should be defined as 1.*/
