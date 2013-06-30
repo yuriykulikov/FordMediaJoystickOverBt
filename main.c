@@ -1,35 +1,117 @@
-/* This file has been prepared for Doxygen automatic documentation generation.*/
-/*! \file *********************************************************************
- *
- * \brief  XMEGA firmware for prototype SPI board source
- *
- *      This file contains example application
- *     
- * \author
- *      Universität Erlangen-Nurnberg
- *		LS Informationstechnik (Kommunikationselektronik)
- *		Yuriy Kulikov
- *      Support email: Yuriy.Kulikov.87@googlemail.com
- *****************************************************************************/
-
-/* Compiler definitions include file. */
 #include "avr_compiler.h"
+#include "Leds.h"
 #include <avr/sleep.h>
-/* Scheduler include files. */
 #include "FreeRTOS.h"
-
-/* Atmel drivers */
 #include "clksys_driver.h"
 #include "pmic_driver.h"
-/* File headers. */
-
 #include "usart_driver_RTOS.h"
+#include "Handler.h"
+#include "Buttons.h"
+#include "port_driver.h"
 
+Message msgArray[QUEUE_MAX_LEN];
+LedGroup leds;
+Led red;
+Led green;
+Led blue;
+Led ledArray[3];
+Button_struct_t plusButton;
+Handler handler;
+MsgQueue queue;
+USART_buffer_struct_t FTDI_USART;
+
+typedef enum s{
+    RED = 0x01,
+    GREEN = 0x02,
+    BLUE= 0x04,
+
+    ORANGE = 0x03,
+    PINK = 0x05,
+    SKY = 0x06,
+
+    WHITE = 0x07,
+    NONE = 0x00,
+} Color_enum;
+
+typedef enum {
+    CHECK_BUTTONS = 1,
+    SET_OFF = 3,
+    HEARTBEAT = 4,
+    HEARTBEAT_OFF = 5,
+    SETUP = 6,
+} Message_code_t;
 
 /* BADISR_vect is called when interrupt has occurred, but there is no ISR handler for it defined */
 ISR (BADISR_vect){
 	//stop execution and report error
 	//while(true) LED_set(ORANGE);
+}
+
+void initLeds() {
+    PORT_ConfigurePins(&PORTF, PIN0_bm, 0, 0, PORT_OPC_WIREDANDPULL_gc, PORT_ISC_BOTHEDGES_gc );
+    PORT_ConfigurePins(&PORTF, PIN1_bm, 0, 0, PORT_OPC_WIREDANDPULL_gc, PORT_ISC_BOTHEDGES_gc );
+    PORT_ConfigurePins(&PORTB, PIN7_bm, 0, 0, PORT_OPC_WIREDANDPULL_gc, PORT_ISC_BOTHEDGES_gc );
+    PORT_SetPinAsOutput(&PORTF, PIN0_bp);
+    PORT_SetPinAsOutput(&PORTF, PIN1_bp);
+    PORT_SetPinAsOutput(&PORTB, PIN7_bp);
+    //PORTF.OUT = 0;
+
+    //while(1);
+
+    Led_init(&red, &PORTF.OUT, PIN0_bm, 1);
+    Led_init(&green, &PORTF.OUT, PIN1_bm, 1);
+    Led_init(&blue, &PORTB.OUT, PIN7_bm, 1);
+
+    LedGroup_init(&leds, ledArray);
+    LedGroup_add(&leds, &red);
+    LedGroup_add(&leds, &green);
+    LedGroup_add(&leds, &blue);
+    LedGroup_set(&leds, NONE);
+}
+
+void onPlusClick() {
+    LedGroup_set(&leds, WHITE);
+    Message *message = Handler_obtain(&handler, SET_OFF);
+    Handler_sendMessageDelayed(&handler, message, 198);
+//TODO
+}
+
+void onLongClick() {
+    LedGroup_set(&leds, WHITE);
+    Message *message = Handler_obtain(&handler, SET_OFF);
+    Handler_sendMessageDelayed(&handler, message, 198);
+    //TODO
+    USART_Buffer_PutString(&FTDI_USART, "onLongClick\n",DONT_BLOCK);
+}
+
+void handleMessage(Message msg, void *context, Handler *handler) {
+    switch (msg.what) {
+    case CHECK_BUTTONS:
+        Button_checkButton(&plusButton);
+//TODO
+        Message *buttonMessage = Handler_obtain(handler, CHECK_BUTTONS);
+        Handler_sendMessageDelayed(handler, buttonMessage, CHECK_BUTTON_PERIOD);
+        break;
+    case SET_OFF:
+        LedGroup_set(&leds, NONE);
+        break;
+    case HEARTBEAT:
+        LedGroup_set(&leds, WHITE);
+        Message *message = Handler_obtain(handler, HEARTBEAT_OFF);
+        Handler_sendMessageDelayed(handler, message, 1000);
+        break;
+    case HEARTBEAT_OFF:
+        LedGroup_set(&leds, NONE);
+        Message *messageHBOff = Handler_obtain(handler, HEARTBEAT);
+        Handler_sendMessageDelayed(handler, messageHBOff, 1000);
+        break;
+    }
+}
+
+void doSchedulerTask(){
+    while (1) {
+        MsgQueue_processNextMessage(&queue);
+    }
 }
 
 int main( void )
@@ -46,17 +128,31 @@ int main( void )
 	 * (which will be executed after scheduler has started) if fast startup is needed.
 	 * Interrupts are not enabled until the call of vTaskStartScheduler();
 	 */
+    MsgQueue_init(&queue, msgArray, 20);
+    Handler_init(&handler, &queue, handleMessage, 0);
+
+    initLeds();
+
+    PORT_ConfigurePins(&PORTE, PIN5_bm, 0, 0 ,PORT_OPC_PULLUP_gc, PORT_ISC_FALLING_gc );
 
 
-	USART_buffer_struct_t FTDI_USART;
-//	FTDI_USART = USART_InterruptDriver_Initialize(&USARTC0, BAUD9600, 64);
+    Button_init(&plusButton, &PORTE.IN, PIN5_bm, onPlusClick, onLongClick);
+    LedGroup_set(&leds, WHITE);
+    Message *message = Handler_obtain(&handler, SET_OFF);
+    Handler_sendMessageDelayed(&handler, message, 1905);
+
+
+    Handler_sendEmptyMessage(&handler, CHECK_BUTTONS);
+    Handler_sendEmptyMessage(&handler, SETUP);
+  //  Handler_sendEmptyMessage(&handler, HEARTBEAT);
+
+	FTDI_USART = USART_InterruptDriver_Initialize(&USARTD0, BAUD9600, 64);
 	/* Report itself. */
-//	USART_Buffer_PutString(&FTDI_USART, "XMEGA ready",DONT_BLOCK);
+//
 	/* Start USART task */
 //	xTaskCreate(vUSARTTask, ( signed char * ) "USARTTSK", 1000,&FTDI_USART, configNORMAL_PRIORITY, NULL );
 	/* Start LED task for testing purposes */
-	xQueueHandle debugLed = startDebugLedTask(configLOW_PRIORITY);
-//	xTaskCreate(BlinkingLedTask, ( signed char * ) "BLINK", configMINIMAL_STACK_SIZE, debugLed, configLOW_PRIORITY, NULL );
+	xTaskCreate(doSchedulerTask, ( signed char * ) "SDLR", configMINIMAL_STACK_SIZE+500, NULL, configNORMAL_PRIORITY, NULL );
 	/* Start SPISPY task */
 	//vStartSPISPYTask(configNORMAL_PRIORITY);
 
@@ -82,33 +178,18 @@ int main( void )
 	//while(true) LED_set(PINK);
 	return 0;
 }
-/* Prototype */
-void vApplicationIdleHook( void );
-/* This function is only called when there are no tasks to execute, except for the idle task. Most commonly it
- * is used to schedule co-routines or do some unimportant jobs. It is also great to put sleep(); to save
- * power. Microcontroller will stop code execution until the next interrupt from tick timer or peripheral.
- * configUSE_IDLE_HOOK should be defined as 1 to use IdleHook
- */
 void vApplicationIdleHook( void )
 {
    /* Go to sleep mode if there are no active tasks	*/
-	sleep_mode();
+//	sleep_mode();
 }
-/* Prototype */
-void vApplicationStackOverflowHook( xTaskHandle *pxTask, signed portCHAR *pcTaskName );
-	/* This function is called immediately after task context is saved into stack. This is the case
-	 * when stack contains biggest amount of data. Hook function checks if there is a stack overflow
-	 * for the current (switched) task. Parameters could be used for debug output.
-	 * configCHECK_FOR_STACK_OVERFLOW should be defined as 1 to use StackOverflowHook.
-	 */
 void vApplicationStackOverflowHook( xTaskHandle *pxTask, signed portCHAR *pcTaskName )
 {
 	/* stop execution and report error */
 	//while(true) LED_set(RED);
 }
-void vApplicationTickHook( void );
-/* This function is called during the tick interrupt. configUSE_TICK_HOOK should be defined as 1.*/
+
 void vApplicationTickHook( void )
 {
-/* Tick hook could be used to implement timer functionality*/
+    tick++;
 }
