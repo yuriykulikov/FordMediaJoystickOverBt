@@ -50,17 +50,17 @@ ISR (BADISR_vect){
 void initLeds() {
     PORT_ConfigurePins(&PORTF, PIN0_bm, 0, 0, PORT_OPC_WIREDANDPULL_gc, PORT_ISC_BOTHEDGES_gc );
     PORT_ConfigurePins(&PORTF, PIN1_bm, 0, 0, PORT_OPC_WIREDANDPULL_gc, PORT_ISC_BOTHEDGES_gc );
-    PORT_ConfigurePins(&PORTB, PIN7_bm, 0, 0, PORT_OPC_WIREDANDPULL_gc, PORT_ISC_BOTHEDGES_gc );
+    PORT_ConfigurePins(&PORTF, PIN6_bm, 0, 0, PORT_OPC_WIREDANDPULL_gc, PORT_ISC_BOTHEDGES_gc );
     PORT_SetPinAsOutput(&PORTF, PIN0_bp);
     PORT_SetPinAsOutput(&PORTF, PIN1_bp);
-    PORT_SetPinAsOutput(&PORTB, PIN7_bp);
+    PORT_SetPinAsOutput(&PORTF, PIN6_bp);
     //PORTF.OUT = 0;
 
     //while(1);
 
     Led_init(&red, &PORTF.OUT, PIN0_bm, 1);
-    Led_init(&green, &PORTF.OUT, PIN1_bm, 1);
-    Led_init(&blue, &PORTB.OUT, PIN7_bm, 1);
+    Led_init(&blue, &PORTF.OUT, PIN1_bm, 1);
+    Led_init(&green, &PORTF.OUT, PIN6_bm, 1);
 
     LedGroup_init(&leds, ledArray);
     LedGroup_add(&leds, &red);
