@@ -8,6 +8,8 @@
 #include "Handler.h"
 #include "Buttons.h"
 #include "port_driver.h"
+#include "adc.h"
+#include "debug.h"
 
 Message msgArray[QUEUE_MAX_LEN];
 LedGroup leds;
@@ -18,7 +20,15 @@ Led ledArray[3];
 Button_struct_t plusButton;
 Handler handler;
 MsgQueue queue;
-USART_buffer_struct_t FTDI_USART;
+
+
+Button_struct_t seekUp;
+Button_struct_t seekDown;
+Button_struct_t volumeUp;
+Button_struct_t volumeDown;
+Button_struct_t mode;
+
+uint8_t virtualButtonPort = 0;
 
 typedef enum s{
     RED = 0x01,
@@ -69,10 +79,42 @@ void initLeds() {
     LedGroup_set(&leds, NONE);
 }
 
+void onSeekUpClick() {
+    LedGroup_set(&leds, GREEN);
+    logs("onSeekUpClick\n");
+    Message *message = Handler_obtain(&handler, SET_OFF);
+    Handler_sendMessageDelayed(&handler, message, 198);
+}
+void onSeekDownClick() {
+    LedGroup_set(&leds, BLUE);
+    logs("onSeekDownClick\n");
+    Message *message = Handler_obtain(&handler, SET_OFF);
+    Handler_sendMessageDelayed(&handler, message, 198);
+}
+void onVolumeUpClick() {
+    LedGroup_set(&leds, RED);
+    logs("onVolumeUpClick\n");
+    Message *message = Handler_obtain(&handler, SET_OFF);
+    Handler_sendMessageDelayed(&handler, message, 198);
+}
+void onVolumeDownClick() {
+    LedGroup_set(&leds, ORANGE);
+    logs("onVolumeDownClick\n");
+    Message *message = Handler_obtain(&handler, SET_OFF);
+    Handler_sendMessageDelayed(&handler, message, 198);
+}
+void onModeClick() {
+    LedGroup_set(&leds, SKY);
+    logs("onModeClick\n");
+    Message *message = Handler_obtain(&handler, SET_OFF);
+    Handler_sendMessageDelayed(&handler, message, 198);
+}
+
 void onPlusClick() {
     LedGroup_set(&leds, WHITE);
     Message *message = Handler_obtain(&handler, SET_OFF);
     Handler_sendMessageDelayed(&handler, message, 198);
+    logs("onPlusClick\n");
 //TODO
 }
 
@@ -81,14 +123,18 @@ void onLongClick() {
     Message *message = Handler_obtain(&handler, SET_OFF);
     Handler_sendMessageDelayed(&handler, message, 198);
     //TODO
-    USART_Buffer_PutString(&FTDI_USART, "onLongClick\n",DONT_BLOCK);
+    logs("onLongClick\n");
 }
 
 void handleMessage(Message msg, void *context, Handler *handler) {
     switch (msg.what) {
     case CHECK_BUTTONS:
         Button_checkButton(&plusButton);
-//TODO
+        Button_checkButton(&volumeDown);
+        Button_checkButton(&volumeUp);
+        Button_checkButton(&seekDown);
+        Button_checkButton(&seekUp);
+        Button_checkButton(&mode);
         Message *buttonMessage = Handler_obtain(handler, CHECK_BUTTONS);
         Handler_sendMessageDelayed(handler, buttonMessage, CHECK_BUTTON_PERIOD);
         break;
@@ -137,6 +183,13 @@ int main( void )
 
 
     Button_init(&plusButton, &PORTE.IN, PIN5_bm, onPlusClick, onLongClick);
+
+    Button_init(&volumeDown, &virtualButtonPort, VOLUME_DOWN_bm, onVolumeDownClick, onLongClick);
+    Button_init(&volumeUp, &virtualButtonPort, VOLUME_UP_bm, onVolumeUpClick, onLongClick);
+    Button_init(&seekDown, &virtualButtonPort, SEEK_DOWN_bm, onSeekDownClick, onLongClick);
+    Button_init(&seekUp, &virtualButtonPort, SEEK_UP_bm, onSeekUpClick, onLongClick);
+    Button_init(&mode, &virtualButtonPort, MODE_bm, onModeClick, onLongClick);
+
     LedGroup_set(&leds, WHITE);
     Message *message = Handler_obtain(&handler, SET_OFF);
     Handler_sendMessageDelayed(&handler, message, 1905);
@@ -144,7 +197,7 @@ int main( void )
 
     Handler_sendEmptyMessage(&handler, CHECK_BUTTONS);
     Handler_sendEmptyMessage(&handler, SETUP);
-  //  Handler_sendEmptyMessage(&handler, HEARTBEAT);
+   // Handler_sendEmptyMessage(&handler, HEARTBEAT);
 
 	FTDI_USART = USART_InterruptDriver_Initialize(&USARTD0, BAUD9600, 64);
 	/* Report itself. */
@@ -155,7 +208,7 @@ int main( void )
 	xTaskCreate(doSchedulerTask, ( signed char * ) "SDLR", configMINIMAL_STACK_SIZE+500, NULL, configNORMAL_PRIORITY, NULL );
 	/* Start SPISPY task */
 	//vStartSPISPYTask(configNORMAL_PRIORITY);
-
+	xTaskCreate(doADCTask, ( signed char * ) "ADC", configMINIMAL_STACK_SIZE+500, &virtualButtonPort, configNORMAL_PRIORITY, NULL );
 //	LED_queue_put(debugLed,BLUE,700);
 //	LED_queue_put(debugLed,SKY,700);
 //	LED_queue_put(debugLed,WHITE,700);
