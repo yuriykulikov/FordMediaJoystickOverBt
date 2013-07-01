@@ -60,21 +60,20 @@
 #include "debug.h"
 
 uint8_t getMaskFromResult(int16_t result){
+    result+=100;
     //We simulate how the real gpio works. Button pressed - bit is 0
-    if (result < 116) {
+    if (result > 600) {
         return 0xFF;
-    } else if (result > 370) {
-        return 0xFF;
-    } else if (result > 349) {
-        return 0xFF &~ VOLUME_DOWN_bm;
-    } else if (result > 339) {
-        return 0xFF &~ VOLUME_UP_bm;
-    } else if (result > 313) {
-        return 0xFF &~ SEEK_UP_bm;
-    } else if (result > 265) {
-        return 0xFF &~ SEEK_DOWN_bm;
-    } else if (result > 116) {
+    } else if (result > 264) {
         return 0xFF &~ MODE_bm;
+    } else if (result > 161) {
+        return 0xFF &~ SEEK_UP_bm;
+    } else if (result > 96) {
+        return 0xFF &~ SEEK_DOWN_bm;
+    } else if (result > 50) {
+        return 0xFF &~ VOLUME_UP_bm;
+    } else if (result > 0) {
+        return 0xFF &~ VOLUME_DOWN_bm;
     } else
         return 0xFF;
 }
