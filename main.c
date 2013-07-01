@@ -197,7 +197,7 @@ int main( void )
 
     Handler_sendEmptyMessage(&handler, CHECK_BUTTONS);
     Handler_sendEmptyMessage(&handler, SETUP);
-   // Handler_sendEmptyMessage(&handler, HEARTBEAT);
+    Handler_sendEmptyMessage(&handler, HEARTBEAT);
 
 	FTDI_USART = USART_InterruptDriver_Initialize(&USARTD0, BAUD9600, 64);
 	/* Report itself. */
