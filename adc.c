@@ -89,7 +89,7 @@ void doADCTask(uint8_t *button)
     ADC_ConvMode_and_Resolution_Config(&ADCA, ADC_ConvMode_Signed, ADC_RESOLUTION_12BIT_gc);
 
     /* Set sample rate. */
-    ADC_Prescaler_Config(&ADCA, ADC_PRESCALER_DIV32_gc);
+    ADC_Prescaler_Config(&ADCA, ADC_PRESCALER_DIV512_gc);
 
     /* Set reference voltage on ADC A to be VCC/1.6 V.*/
     ADC_Reference_Config(&ADCA, ADC_REFSEL_VCC_gc);
