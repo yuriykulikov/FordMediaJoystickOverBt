@@ -57,6 +57,24 @@ ISR (BADISR_vect){
 	//while(true) LED_set(ORANGE);
 }
 
+void onMediaUp(Button_struct_t *button) {
+    LedGroup_set(&leds, ORANGE);
+    Message *message = Handler_obtain(&handler, SET_OFF);
+    Handler_sendMessageDelayed(&handler, message, 198);
+    logs("ACTION_UP       ");
+    logs(button->name);
+    logs("\n");
+}
+
+void onMediaDown(Button_struct_t *button) {
+    LedGroup_set(&leds, SKY);
+    Message *message = Handler_obtain(&handler, SET_OFF);
+    Handler_sendMessageDelayed(&handler, message, 198);
+    logs("ACTION_DOWN ");
+    logs(button->name);
+    logs("\n");
+}
+
 void initLeds() {
     PORT_ConfigurePins(&PORTF, PIN0_bm, 0, 0, PORT_OPC_WIREDANDPULL_gc, PORT_ISC_BOTHEDGES_gc );
     PORT_ConfigurePins(&PORTF, PIN1_bm, 0, 0, PORT_OPC_WIREDANDPULL_gc, PORT_ISC_BOTHEDGES_gc );
@@ -79,51 +97,35 @@ void initLeds() {
     LedGroup_set(&leds, NONE);
 }
 
-void onSeekUpClick() {
-    LedGroup_set(&leds, GREEN);
-    logs("onSeekUpClick\n");
-    Message *message = Handler_obtain(&handler, SET_OFF);
-    Handler_sendMessageDelayed(&handler, message, 198);
-}
-void onSeekDownClick() {
-    LedGroup_set(&leds, BLUE);
-    logs("onSeekDownClick\n");
-    Message *message = Handler_obtain(&handler, SET_OFF);
-    Handler_sendMessageDelayed(&handler, message, 198);
-}
-void onVolumeUpClick() {
-    LedGroup_set(&leds, RED);
-    logs("onVolumeUpClick\n");
-    Message *message = Handler_obtain(&handler, SET_OFF);
-    Handler_sendMessageDelayed(&handler, message, 198);
-}
-void onVolumeDownClick() {
-    LedGroup_set(&leds, ORANGE);
-    logs("onVolumeDownClick\n");
-    Message *message = Handler_obtain(&handler, SET_OFF);
-    Handler_sendMessageDelayed(&handler, message, 198);
-}
-void onModeClick() {
-    LedGroup_set(&leds, SKY);
-    logs("onModeClick\n");
-    Message *message = Handler_obtain(&handler, SET_OFF);
-    Handler_sendMessageDelayed(&handler, message, 198);
-}
+void initButtons(){
+    PORT_ConfigurePins(&PORTE, PIN5_bm, 0, 0 ,PORT_OPC_PULLUP_gc, PORT_ISC_FALLING_gc );
+    Button_init(&plusButton, &PORTE.IN, PIN5_bm);
 
-void onPlusClick() {
-    LedGroup_set(&leds, WHITE);
-    Message *message = Handler_obtain(&handler, SET_OFF);
-    Handler_sendMessageDelayed(&handler, message, 198);
-    logs("onPlusClick\n");
-//TODO
-}
+    Button_init(&volumeDown, &virtualButtonPort, VOLUME_DOWN_bm);
+    Button_init(&volumeUp, &virtualButtonPort, VOLUME_UP_bm);
+    Button_init(&seekDown, &virtualButtonPort, SEEK_DOWN_bm);
+    Button_init(&seekUp, &virtualButtonPort, SEEK_UP_bm);
+    Button_init(&mode, &virtualButtonPort, MODE_bm);
 
-void onLongClick() {
-    LedGroup_set(&leds, WHITE);
-    Message *message = Handler_obtain(&handler, SET_OFF);
-    Handler_sendMessageDelayed(&handler, message, 198);
-    //TODO
-    logs("onLongClick\n");
+    Button_setName(&volumeDown,"KEYCODE_VOLUME_DOWN");
+    Button_setName(&volumeUp, "KEYCODE_VOLUME_UP");
+    Button_setName(&seekDown, "KEYCODE_MEDIA_NEXT");
+    Button_setName(&seekUp, "KEYCODE_MEDIA_PREVIOUS");
+    Button_setName(&mode, "KEYCODE_MEDIA_PLAY_PAUSE");
+
+    Button_setOnDownListener(&volumeUp, onMediaDown);
+    Button_setOnDownListener(&volumeDown, onMediaDown);
+    Button_setOnDownListener(&seekDown, onMediaDown);
+    Button_setOnDownListener(&seekUp, onMediaDown);
+    Button_setOnDownListener(&mode, onMediaDown);
+    Button_setOnDownListener(&plusButton, onMediaDown);
+
+    Button_setOnUpListener(&volumeUp, onMediaUp);
+    Button_setOnUpListener(&volumeDown, onMediaUp);
+    Button_setOnUpListener(&seekDown, onMediaUp);
+    Button_setOnUpListener(&seekUp, onMediaUp);
+    Button_setOnUpListener(&mode, onMediaUp);
+    Button_setOnUpListener(&plusButton, onMediaUp);
 }
 
 void handleMessage(Message msg, void *context, Handler *handler) {
@@ -178,17 +180,7 @@ int main( void )
     Handler_init(&handler, &queue, handleMessage, 0);
 
     initLeds();
-
-    PORT_ConfigurePins(&PORTE, PIN5_bm, 0, 0 ,PORT_OPC_PULLUP_gc, PORT_ISC_FALLING_gc );
-
-
-    Button_init(&plusButton, &PORTE.IN, PIN5_bm, onPlusClick, onLongClick);
-
-    Button_init(&volumeDown, &virtualButtonPort, VOLUME_DOWN_bm, onVolumeDownClick, onLongClick);
-    Button_init(&volumeUp, &virtualButtonPort, VOLUME_UP_bm, onVolumeUpClick, onLongClick);
-    Button_init(&seekDown, &virtualButtonPort, SEEK_DOWN_bm, onSeekDownClick, onLongClick);
-    Button_init(&seekUp, &virtualButtonPort, SEEK_UP_bm, onSeekUpClick, onLongClick);
-    Button_init(&mode, &virtualButtonPort, MODE_bm, onModeClick, onLongClick);
+    initButtons();
 
     LedGroup_set(&leds, WHITE);
     Message *message = Handler_obtain(&handler, SET_OFF);
@@ -197,7 +189,7 @@ int main( void )
 
     Handler_sendEmptyMessage(&handler, CHECK_BUTTONS);
     Handler_sendEmptyMessage(&handler, SETUP);
-    Handler_sendEmptyMessage(&handler, HEARTBEAT);
+    //Handler_sendEmptyMessage(&handler, HEARTBEAT);
 
 	FTDI_USART = USART_InterruptDriver_Initialize(&USARTD0, BAUD9600, 128);
 	/* Report itself. */
