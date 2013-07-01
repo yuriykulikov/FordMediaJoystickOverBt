@@ -199,7 +199,7 @@ int main( void )
     Handler_sendEmptyMessage(&handler, SETUP);
     Handler_sendEmptyMessage(&handler, HEARTBEAT);
 
-	FTDI_USART = USART_InterruptDriver_Initialize(&USARTD0, BAUD9600, 64);
+	FTDI_USART = USART_InterruptDriver_Initialize(&USARTD0, BAUD9600, 128);
 	/* Report itself. */
 //
 	/* Start USART task */
